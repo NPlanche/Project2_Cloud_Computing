@@ -11,6 +11,8 @@ from pathlib import Path
 
 app = Flask(__name__)
 
+
+
 @app.route('/')
 def index():
     print("GET /")
@@ -44,9 +46,21 @@ def index():
       
 </form>"""
 
-    for file in list_files():
-        index_html += "<img class='image' src=\" /static/image/"+ file + "\">"
-          
+    # for file in list_files():
+    #     index_html += "<img class='image' src=\" /static/image/"+ file + "\">"
+    
+    storage_client = storage.Client('Project 2')
+    #get the bucket
+    bucket = storage_client.get_bucket(app.config['BUCKET'])
+
+    blobs = bucket.list_blobs(prefix='static/image/')
+    for blob in blobs:
+        if not blob.name.endswith('/'):
+            # This blob is not a directory!
+            index_html += "<img class='image' src='" + blob.public_url + "'>"
+
+            
+        
     return index_html
 
 
@@ -105,9 +119,9 @@ def download_picture():
     
     print("Download Inages from Bucket")
 
-    storage_client = storage.Client('Project 2')
+    s_c = storage.Client('Project 2')
     #get the bucket
-    bucket = storage_client.get_bucket(app.config['BUCKET'])
+    b = s_c.get_bucket(app.config['BUCKET'])
 
     #///////////////////////////// Download Bucket Forlder with the all the images ////////////////////////
 
@@ -116,7 +130,7 @@ def download_picture():
     # Create the directory locally
     Path(folder_name_on_gcs).mkdir(parents=True, exist_ok=True)
 
-    blobs = bucket.list_blobs(prefix=folder_name_on_gcs)
+    blobs = b.list_blobs(prefix=folder_name_on_gcs)
     for blob in blobs:
         if not blob.name.endswith('/'):
             # This blob is not a directory!
