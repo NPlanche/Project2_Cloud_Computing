@@ -1,17 +1,10 @@
 import os
 import traceback
 from flask import Flask, redirect, request, send_file
-
-#from PIL import Image
 from google.cloud import storage
 from pathlib import Path
 
-##from PIL.ExifTags import TAGS
-##import sys
-
 app = Flask(__name__)
-
-
 
 @app.route('/')
 def index():
@@ -41,14 +34,10 @@ def index():
         </div>
         <hr>
 
-        <h1 class='title'>Gallery</h1>
-      
-      
+        <h1 class='title'>Gallery</h1>  
 </form>"""
 
-    # for file in list_files():
-    #     index_html += "<img class='image' src=\" /static/image/"+ file + "\">"
-    
+    #identify the project
     storage_client = storage.Client('Project 2')
     #get the bucket
     bucket = storage_client.get_bucket(app.config['BUCKET'])
@@ -56,32 +45,20 @@ def index():
     blobs = bucket.list_blobs(prefix='static/image/')
     for blob in blobs:
         if not blob.name.endswith('/'):
-            # This blob is not a directory!
-            index_html += "<img class='image' src='" + blob.public_url + "'>"
-
-            
-        
+            #add all the imgs in the bucket to the html using their public url
+            index_html += "<img class='image' src='" + blob.public_url + "'>"    
     return index_html
-
 
 @app.route('/upload', methods = ['POST'])
 def upload():    
     try:
         print("POST /upload")
         file = request.files['form_file']
-        #file.save(os.path.join("./files", file.filename))
         file.save(os.path.join("./static/image/", file.filename))
-
         save_picture(file.filename)
-        download_picture()
-        print("///////////////////////////////////Download was a Success////////////////////////////")
-    ##except:
-        ##traceback.print_exc()
-        #change later
-    except Exception as err:
-        print(f"Unexpected {err=}, {type(err)=}")
+    except:
+        traceback.print_exc()
     return redirect('/')
-
 
 @app.route('/static/image/')
 def list_files():
@@ -102,28 +79,26 @@ def get_file(filename):
     print("GET /static/image/"+filename)
     return send_file('./static/image/'+filename)
 
-
 app.config['BUCKET'] = 'project2database'
 app.config['UPLOAD_FOLDER'] = './static/image/'
 
+#save image in the storage bucket
 def save_picture(picture_fn):
     picture_path = os.path.join(app.config['UPLOAD_FOLDER'], picture_fn)
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(app.config['BUCKET'])
     blob = bucket.blob('static/image/'+ picture_fn)
     blob.upload_from_filename(picture_path)
-
     return picture_path
 
+#downloads an image to a local file
 def download_picture():
-    
     print("Download Inages from Bucket")
 
+    #get project
     s_c = storage.Client('Project 2')
     #get the bucket
     b = s_c.get_bucket(app.config['BUCKET'])
-
-    #///////////////////////////// Download Bucket Forlder with the all the images ////////////////////////
 
     folder_name_on_gcs = 'static/image/'
 
@@ -133,11 +108,8 @@ def download_picture():
     blobs = b.list_blobs(prefix=folder_name_on_gcs)
     for blob in blobs:
         if not blob.name.endswith('/'):
-            # This blob is not a directory!
             print(f'Downloading file [{blob.name}]')
             blob.download_to_filename(f'./{blob.name}')
-
-    #////////////////////////////
 
     return folder_name_on_gcs
 
